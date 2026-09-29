@@ -17,10 +17,16 @@
           </button>
         </li>
       </ul>
-      <div class="d-flex justify-content-end flex-shrink-0">
+      <div class="d-flex justify-content-end align-items-center gap-3 flex-shrink-0">
         <span class="text-light small d-none d-md-inline border-start ps-3 border-secondary">
           <i class="bi bi-clock me-1"></i> {{ currentTime }}
         </span>
+        <span class="text-light small d-flex align-items-center gap-1">
+          <i class="bi bi-person-circle"></i>{{ userName }}
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-light" title="登出" @click="handleLogout">
+          <i class="bi bi-box-arrow-right me-1"></i>登出
+        </button>
       </div>
     </div>
   </nav>
@@ -29,9 +35,21 @@
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { getSession, signOut, displayName } from '@/lib/auth';
 
 const router = useRouter();
 const route = useRoute();
+
+const userName = ref('');
+
+const handleLogout = async () => {
+  if (!confirm('確定要登出嗎？')) return;
+  try {
+    await signOut();
+  } finally {
+    router.replace('/login');
+  }
+};
 
 const navItems = [
   {
@@ -65,12 +83,13 @@ const goTo = (path: string) => {
 const currentTime = ref('');
 let timerId: number | undefined;
 
-onMounted(() => {
+onMounted(async () => {
   timerId = window.setInterval(() => {
     const now = new Date();
     currentTime.value = now.toLocaleTimeString('zh-TW', { hour12: false });
   }, 1000);
   currentTime.value = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  userName.value = displayName(await getSession());
 });
 
 onBeforeUnmount(() => {

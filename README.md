@@ -18,7 +18,7 @@ src/
 ├─ views/InjectionMolding_Index.vue   版面（上方導覽列 + 內容）
 ├─ lib/supabase.js                 Supabase 連線
 └─ components/
-   ├─ apis/通用.js                 所有資料存取（取代原本的後端 API）
+   ├─ apis/general.js              所有資料存取（取代原本的後端 API）
    └─ IM_ProductionWorkOrder/      各頁面元件與 useIMProductionWorkOrder.js
 supabase/migrations/               資料庫建表與函式（已套用到 Supabase）
 ```
@@ -43,11 +43,10 @@ npm run dev
 - `001_init_schema.sql`：7 張資料表、`updated_at` 自動更新、權限（RLS）
 - `002_daily_report_functions.sql`：`save_daily_report`、`delete_daily_report`，
   讓日報主表、班別明細、不良明細在同一個交易內新增／更新／刪除
+- `003_require_login.sql`：只有登入者可以讀寫資料，未登入者無法存取
 
-⚠ 目前權限為「任何人皆可讀寫」（尚未加登入）。正式對外使用前，
-建議加上 Supabase Auth，並將政策中的 `anon` 移除：
+## 登入
 
-```sql
-alter policy "allow_all_crud" on public.im_machine to authenticated;
--- 其餘 6 張表比照辦理
-```
+- 帳號：`admin`，密碼：`123456`（實際登入的 email 為 `admin@mes.local`）
+- 帳號管理：Supabase → Authentication → Users（新增帳號時 email 用 `名稱@mes.local`，即可用「名稱」登入）
+- 建議正式使用前更換為較強的密碼

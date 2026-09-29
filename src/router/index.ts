@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { getSession } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -6,10 +8,16 @@ const routes: Array<RouteRecordRaw> = [
     redirect: "/InjectionMolding_Index/IM_Dashboard",
   },
   {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/Login.vue"),
+    meta: { requiresAuth: false, guestOnly: true },
+  },
+  {
     path: "/InjectionMolding_Index",
     name: "InjectionMolding_Index",
     component: () => import("@/views/InjectionMolding_Index.vue"),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: true },
     children: [
       {
         path: "",
@@ -64,6 +72,30 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// 登入檢查：未登入一律導向登入頁；已登入再進登入頁則導回首頁
+router.beforeEach(async (to) => {
+  const needsAuth = to.matched.some((r) => r.meta.requiresAuth);
+  const session = await getSession();
+
+  if (needsAuth && !session) {
+    return { path: "/login", query: { redirect: to.fullPath } };
+  }
+  if (to.meta.guestOnly && session) {
+    return { path: "/InjectionMolding_Index/IM_Dashboard" };
+  }
+  return true;
+});
+
+// 登入逾期或在其他分頁登出時，自動回到登入頁
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") {
+    const current = router.currentRoute.value;
+    if (current.matched.some((r) => r.meta.requiresAuth)) {
+      router.replace({ path: "/login", query: { redirect: current.fullPath } });
+    }
+  }
 });
 
 export default router;
