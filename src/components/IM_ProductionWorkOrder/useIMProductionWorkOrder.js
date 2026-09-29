@@ -24,7 +24,7 @@ import {
   前端_更新_日報資料,
   前端_刪除_日報資料,
   前端_取得_日報產量統計,
-} from "@/components/apis/通用.js";
+} from "@/components/apis/general.js";
 
 const TARGET_DEPARTMENT = "成型課";
 
