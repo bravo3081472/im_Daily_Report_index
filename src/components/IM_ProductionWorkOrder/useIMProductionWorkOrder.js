@@ -28,6 +28,15 @@ import {
 
 const TARGET_DEPARTMENT = "成型課";
 
+// 取得「本地時間」的今天日期 YYYY-MM-DD
+// （原本用 toISOString() 是 UTC，台灣早上 8 點前會變成前一天）
+export const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+};
+
 // 製令進度統計：由已儲存的日報計算上月 / 本月 / 累計產量與每日明細
 // （原本這些數字只存在瀏覽器記憶體，重新整理就歸零）
 const monthKeyOf = (date) =>
@@ -304,7 +313,7 @@ const normalizeDailyReport = (report = {}, fallbackIndex = 0) => ({
  * @returns {ReportForm} 日報表單預設資料
  */
 const createDefaultReportForm = () => ({
-  prodDate: new Date().toISOString().substring(0, 10), // 生產日期，預設今天
+  prodDate: todayLocal(), // 生產日期，預設今天
   machineId: "", // 機台編號
   orderNo: "", // 製令單號
   prevAccumQty: 0, // 前日累計生產數量
@@ -748,12 +757,12 @@ export function useIMProductionWorkOrder(options = {}) {
    */
   const kpiStats = computed(() => {
     const totalOutput =
-      dailyReports.value.reduce((s, r) => s + r.totalOutput, 0) || 4310;
+      dailyReports.value.reduce((s, r) => s + r.totalOutput, 0);
     const totalDefects =
       dailyReports.value.reduce(
         (s, r) => s + (r.dayDefect + r.nightDefect),
         0
-      ) || 77;
+      );
     const goodRate =
       totalOutput > 0
         ? (100 - (totalDefects / totalOutput) * 100).toFixed(1)
@@ -1530,7 +1539,7 @@ export function useIMProductionWorkOrder(options = {}) {
 
   const resetReportForm = () => {
     editingReportId.value = null;
-    reportForm.prodDate = new Date().toISOString().substring(0, 10);
+    reportForm.prodDate = todayLocal();
     reportForm.machineId = "";
     reportForm.orderNo = "";
     reportForm.prevAccumQty = 0;
@@ -1775,7 +1784,7 @@ export function useIMProductionWorkOrder(options = {}) {
         cavities: 2,
         stdCycle: 25,
         targetQty: 5000,
-        dueDate: new Date().toISOString().substring(0, 10),
+        dueDate: todayLocal(),
         unitUsage: 50,
         lastMonthQty: 0,
         thisMonthQty: 0,

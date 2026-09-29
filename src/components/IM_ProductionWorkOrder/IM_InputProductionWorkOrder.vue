@@ -25,7 +25,17 @@
         <div class="row g-3 align-items-center">
           <div class="col-md-3">
             <label class="form-label fw-semibold small mb-1"><i class="bi bi-calendar-event me-1"></i>生產日期</label>
-            <input type="date" class="form-control" v-model="reportForm.prodDate">
+            <div class="prod-date-group">
+              <div class="input-group">
+                <input type="text" class="form-control" v-model="prodDateText" placeholder="yyyy/mm/dd"
+                  inputmode="numeric" maxlength="10" @blur="commitProdDate" @keydown.enter.prevent="commitProdDate">
+                <button class="btn btn-outline-secondary" type="button" title="選擇日期" @click="openDatePicker">
+                  <i class="bi bi-calendar3"></i>
+                </button>
+              </div>
+              <input ref="datePickerRef" type="date" class="prod-date-picker" tabindex="-1" aria-hidden="true"
+                v-model="reportForm.prodDate">
+            </div>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-semibold small mb-1"><i class="bi bi-hdd-rack me-1"></i>機台選單</label>
@@ -688,7 +698,7 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useIMProductionWorkOrder } from './useIMProductionWorkOrder';
 
 export default {
@@ -698,6 +708,49 @@ export default {
     const now = new Date();
     const reportFilterYear = ref(String(now.getFullYear()));
     const reportFilterMonth = ref(String(now.getMonth() + 1).padStart(2, '0'));
+
+    // ── 生產日期：畫面一律顯示 yyyy/mm/dd，資料仍以 YYYY-MM-DD 儲存 ──
+    const datePickerRef = ref(null);
+    const toDisplay = (value) => String(value || '').replace(/-/g, '/');
+    const prodDateText = ref(toDisplay(vm.reportForm.prodDate));
+
+    watch(
+      () => vm.reportForm.prodDate,
+      (value) => { prodDateText.value = toDisplay(value); }
+    );
+
+    // 接受 2026/9/29、2026-09-29、20260929 等寫法
+    const parseDateText = (text) => {
+      const raw = String(text || '').trim();
+      let m = raw.match(/^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/);
+      if (!m) m = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (!m) return null;
+      const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+      const date = new Date(y, mo - 1, d);
+      if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
+      return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    };
+
+    const commitProdDate = () => {
+      const parsed = parseDateText(prodDateText.value);
+      if (parsed) {
+        vm.reportForm.prodDate = parsed;
+        prodDateText.value = toDisplay(parsed);
+      } else {
+        // 格式不正確時還原為原本的日期
+        prodDateText.value = toDisplay(vm.reportForm.prodDate);
+      }
+    };
+
+    const openDatePicker = () => {
+      const el = datePickerRef.value;
+      if (!el) return;
+      if (typeof el.showPicker === 'function') {
+        try { el.showPicker(); return; } catch (e) { /* 部分瀏覽器不支援，改用 focus */ }
+      }
+      el.focus();
+      el.click();
+    };
 
     const availableYears = computed(() => {
       const years = new Set();
@@ -738,6 +791,10 @@ export default {
       filteredDailyReports,
       clearReportFilter,
       openReportForEdit,
+      datePickerRef,
+      prodDateText,
+      commitProdDate,
+      openDatePicker,
     };
   }
 };
@@ -745,6 +802,23 @@ export default {
 
 <style scoped>
 @import "./IM_ProductionWorkOrder.css";
+
+.prod-date-group {
+  position: relative;
+}
+
+/* 隱藏的原生日期選擇器，只用來彈出月曆 */
+.prod-date-picker {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
 
 .emp-inline-wrap {
   width: 100%;
